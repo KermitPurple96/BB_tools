@@ -38,8 +38,6 @@ jqbanner() {
   jq -r '.[] | select(.banner != "") | "\(.url) => \(.banner)"' "$1"
 }
 
-
-
 alias openports='netstat -nape --inet'
 
 # Reboot aliases
