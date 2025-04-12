@@ -16,6 +16,11 @@ set -g fondopurple "\e[0;46m\033[1m"
 set -g fondogris "\e[0;47m\033[1m"
 
 
+
+# =========================
+# Funciones disponibles 🧠
+# =========================
+
 set_color cyan
 echo -e "\n[+] Funciones útiles disponibles:\n"
 
@@ -48,6 +53,13 @@ set_color green
 echo "jqhistinfo"
 set_color normal
 echo "  → Muestra cómo usar las funciones jqhist* para analizar el historial WHOIS de un dominio"
+
+set_color green
+echo "jqhttpxinfo"
+set_color normal
+echo "  → Muestra como usar las funcionalidades jqhttpx* para analizar respuestas http"
+
+
 
 echo ""
 
@@ -513,3 +525,93 @@ function jqhistinfo
 
     echo ""
 end
+
+
+
+
+
+
+function jqhttpxstatus
+    jq -r '. | "\(.url) [\(.status_code)] - \(.title) - \(.webserver)"' $argv[1]
+end
+function jqhttpxtls
+    jq -r '
+    select(.tls != null) |
+    "\(.url)\n  TLS Version: \(.tls.tls_version)\n  Subject CN: \(.tls.subject_cn)\n  Issuer: \(.tls.issuer_cn)\n  Válido desde: \(.tls.not_before) hasta: \(.tls.not_after)\n"
+    ' $argv[1]
+end
+function jqhttpxalt
+    jq -r '
+    select(.tls.subject_an != null) |
+    .url, (.tls.subject_an[] | "  - " + .)
+    ' $argv[1]
+end
+function jqhttpxfingerprint
+    jq -r '
+    select(.tls != null) |
+    "\(.url)\n  SHA1: \(.tls.fingerprint_hash.sha1)\n  SHA256: \(.tls.fingerprint_hash.sha256)"
+    ' $argv[1]
+end
+
+
+
+
+
+function takeover
+    if test (count $argv) -ne 2
+        echo "Uso: takeover <archivo_subdominios> <archivo_salida>"
+        return 1
+    end
+
+    set subsfile $argv[1]
+    set outfile $argv[2]
+    set cnamefile "all_cnames.txt"
+
+    if not test -f "$subsfile"
+        echo "❌ No se encontró el archivo $subsfile"
+        return 1
+    end
+
+    echo "[*] Analizando posibles takeovers en $subsfile..."
+    echo -n > $outfile
+    echo -n > $cnamefile
+
+    for sub in (cat $subsfile)
+        set cname (dig +short $sub CNAME)
+        if test -n "$cname"
+            echo "$sub => $cname" | tee -a $cnamefile
+
+            if not whois $cname ^/dev/null | grep -iqE "Domain Status:.*(ok|active|client|server)"
+                echo "[!] Posible takeover: $sub → $cname" | tee -a $outfile
+            end
+        end
+    end
+
+    echo "[✓] Finalizado."
+    echo "→ CNAMEs en: $cnamefile"
+    echo "→ Posibles takeovers en: $outfile"
+end
+
+#!/usr/bin/env fish
+
+function verify_takeover
+    if test (count $argv) -ne 1
+        echo "Uso: verify_takeover <archivo_subdominios>"
+        return 1
+    end
+
+    set subsfile $argv[1]
+
+    if not test -f "$subsfile"
+        echo "❌ No se encontró el archivo $subsfile"
+        return 1
+    end
+
+    echo "[*] Verificando posibles takeovers con httpx..."
+
+    cat $subsfile | httpx -title -status-code -tech-detect -tls-probe -server -json -silent | tee httpx_takeover_results.json
+
+    echo "[✓] Resultados guardados en httpx_takeover_results.json"
+    echo "Usá 'jq' para analizarlos (por ejemplo: jq '.url, .status_code, .title')"
+end
+
