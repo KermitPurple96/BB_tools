@@ -16,6 +16,10 @@ set -g fondopurple "\e[0;46m\033[1m"
 set -g fondogris "\e[0;47m\033[1m"
 
 
+set -U fish_user_paths /usr/local/go/bin $fish_user_paths
+
+set -Ux fish_user_paths /home/kermit/go/bin/ $fish_user_paths
+source "$HOME/.cargo/env.fish"
 
 # =========================
 # Funciones disponibles 🧠
@@ -59,12 +63,7 @@ echo "jqhttpxinfo"
 set_color normal
 echo "  → Muestra como usar las funcionalidades jqhttpx* para analizar respuestas http"
 
-
-
 echo ""
-
-
-
 
 alias v='nvim'
 
@@ -613,5 +612,58 @@ function verify_takeover
 
     echo "[✓] Resultados guardados en httpx_takeover_results.json"
     echo "Usá 'jq' para analizarlos (por ejemplo: jq '.url, .status_code, .title')"
+end
+
+
+function duckduckgo
+    if test (count $argv) -ne 1
+        echo "Uso: duckduckgo <dominio>"
+        return 1
+    end
+
+    set dominio $argv[1]
+    set token (curl "https://api.duckduckgo.com/?q=site%3A$dominio" -s | grep -Po '(?<=vqd=).*?(?=&)' | tail -1)
+
+    if test -z "$token"
+        echo "❌ No se pudo obtener el token vqd de DuckDuckGo"
+        return 1
+    end
+
+    curl "https://duckduckgo.com/d.js?q=site%3A$dominio&vqd=$token" -s | grep -Po '(?<=u":")[^"]+'
+end
+
+
+function redirects
+    awk -F '\\[|\\]' '{print $NF}' | sort -u
+end
+#!/usr/bin/env fish
+
+function keywordhunt
+    if test (count $argv) -lt 1
+        echo "Uso: keywordhunt <archivo_urls>"
+        return 1
+    end
+
+    set file $argv[1]
+
+    if not test -f $file
+        echo "❌ No se encontró el archivo: $file"
+        return 1
+    end
+
+    echo "[*] Buscando URLs interesantes en: $file"
+
+    set keywords api auth login logout token debug test dev stage config admin passwd password secret key reset upload backup database query email id redirect private
+
+    set pattern ""
+    for word in $keywords
+        set pattern "$pattern\|$word"
+    end
+    set pattern (string replace -r '^\|' '' $pattern)
+
+    grep -Evi '\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot|mp4|webm)$' $file | \
+        grep -Ei "$pattern" | sort -u | tee found_keywords.txt
+
+    echo "[✓] Resultados guardados en: found_keywords.txt"
 end
 
