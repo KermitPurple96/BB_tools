@@ -10,6 +10,7 @@ sudo apt install -y \
     net-tools \
     coreutils \
     moreutils \
+    libpcap-dev \
     curl \
     wget \
     git \
