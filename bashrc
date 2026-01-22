@@ -1,8 +1,7 @@
 # =========================
-# ~/.bashrc custom minimal hacker prompt
+# ~/.bashrc hacker prompt pro
 # =========================
 
-# ---- TERM ----
 export TERM=xterm
 
 # ---- colores ----
@@ -12,44 +11,74 @@ RED="\[\e[31m\]"
 GREEN="\[\e[32m\]"
 YELLOW="\[\e[33m\]"
 BLUE="\[\e[34m\]"
+CYAN="\[\e[36m\]"
 
-# ---- obtener IP de eth0 ----
+# -------------------------
+# IP dinámica
+# -------------------------
 get_ip() {
     ip -4 addr show eth0 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1
 }
 
-# ---- prompt dinámico ----
+# -------------------------
+# git branch
+# -------------------------
+git_branch() {
+    git rev-parse --abbrev-ref HEAD 2>/dev/null
+}
+
+# -------------------------
+# prompt dinámico
+# -------------------------
 set_prompt() {
 
     IP=$(get_ip)
     [ -z "$IP" ] && IP="noip"
 
+    # símbolo root
     if [ "$EUID" -eq 0 ]; then
         SYMBOL="${RED}#"
     else
         SYMBOL="${PURPLE}\$"
     fi
 
-    PS1="${PURPLE}\u${RESET}${GREEN}@${RESET}${YELLOW}${IP}${RESET} ${BLUE}\w${RESET}${SYMBOL}${RESET} "
+    # venv
+    if [ -n "$VIRTUAL_ENV" ]; then
+        VENV_NAME=$(basename "$VIRTUAL_ENV")
+        VENV_PART=" ${CYAN}(${VENV_NAME})${RESET}"
+    else
+        VENV_PART=""
+    fi
+
+    # git
+    BRANCH=$(git_branch)
+    if [ -n "$BRANCH" ]; then
+        GIT_PART=" ${GREEN}(${BRANCH})${RESET}"
+    else
+        GIT_PART=""
+    fi
+
+    PS1="${PURPLE}\u${RESET}${GREEN}@${RESET}${YELLOW}${IP}${RESET} ${BLUE}\w${RESET}${VENV_PART}${GIT_PART}${SYMBOL}${RESET} "
 }
 
 PROMPT_COMMAND="history -a; history -c; history -r; set_prompt"
 
-
-# =========================
-# extras típicos útiles
-# =========================
-
-# historial pro
+# -------------------------
+# historial
+# -------------------------
 HISTSIZE=5000
 HISTFILESIZE=10000
 HISTCONTROL=ignoredups:erasedups
 shopt -s histappend
 
+# -------------------------
 # bash completion
+# -------------------------
 [ -f /etc/bash_completion ] && . /etc/bash_completion
 
-# aliases comfy
+# -------------------------
+# aliases
+# -------------------------
 alias ll='ls -lah --color=auto'
 alias la='ls -A'
 alias l='ls -CF'
@@ -60,7 +89,9 @@ alias c='clear'
 alias ports='ss -tulpen'
 alias myip='ip -4 a'
 
-# calidad de vida
+# PATHs
+export PATH=$PATH:$HOME/go/bin:$HOME/.local/bin
+
 set -o noclobber
 shopt -s checkwinsize
 export LESS='-R'
