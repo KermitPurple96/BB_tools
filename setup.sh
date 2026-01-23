@@ -100,4 +100,12 @@ wget https://raw.githubusercontent.com/KermitPurple96/BB_tools/refs/heads/main/b
 wget https://raw.githubusercontent.com/KermitPurple96/i3-kitty/refs/heads/main/basic.tmuxtheme -O /root/.tmux-themepack/basic.tmuxtheme
 source /root/.bashrc
 
+#neovim
+wget https://github.com/neovim/neovim/releases/download/v0.11.2/nvim-linux-x86_64.appimage
+chmod u+x nvim-linux-x86_64.appimage && ./nvim-linux-x86_64.appimage
+mv ./nvim-linux-x86_64.appimage /usr/bin/nvim
+chmod +x /usr/bin/nvim
 
+#nvchad
+git clone https://github.com/NvChad/starter ~/.config/nvim && nvim
+nvim #<leader>th -> gatekeeper
