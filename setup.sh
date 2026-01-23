@@ -99,3 +99,8 @@ echo "Open a new shell or: source ~/.bashrc"
 echo "Tools installed in ~/go/bin"
 echo "Wordlists: ~/tools/SecLists"
 echo "=================================="
+
+snap install atuin
+git clone https://github.com/jimeh/tmux-themepack.git /root/.tmux-themepack.git
+get https://raw.githubusercontent.com/KermitPurple96/i3-kitty/refs/heads/main/tmux.conf -O /root/.tmux.conf
+
