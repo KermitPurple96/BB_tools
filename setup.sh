@@ -37,16 +37,7 @@ sudo apt install -y \
 echo "[+] Installing python tooling..."
 pipx ensurepath
 
-pip3 install --upgrade pip setuptools wheel
 
-# útiles para scripts de seguridad
-pip3 install \
-    requests \
-    beautifulsoup4 \
-    lxml \
-    flask \
-    rich \
-    httpx
 
 # -------------------------
 # Go tools (bug bounty stack)
