@@ -102,5 +102,8 @@ echo "=================================="
 
 snap install atuin
 git clone https://github.com/jimeh/tmux-themepack.git /root/.tmux-themepack.git
-get https://raw.githubusercontent.com/KermitPurple96/i3-kitty/refs/heads/main/tmux.conf -O /root/.tmux.conf
+wget https://raw.githubusercontent.com/KermitPurple96/i3-kitty/refs/heads/main/tmux.conf -O /root/.tmux.conf
+wget https://raw.githubusercontent.com/KermitPurple96/BB_tools/refs/heads/main/bashrc -O /root/.bashrc
+source /root/.bashrc
+
 
