@@ -1,17 +1,25 @@
-# =========================
-# ~/.bashrc hacker prompt pro
-# =========================
 
 export TERM=xterm
 
-# ---- colores ----
-RESET="\[\e[0m\]"
-PURPLE="\[\e[35m\]"
-RED="\[\e[31m\]"
-GREEN="\[\e[32m\]"
-YELLOW="\[\e[33m\]"
-BLUE="\[\e[34m\]"
-CYAN="\[\e[36m\]"
+# =========================
+# Colors (Bash)
+# =========================
+ENDCOLOR="\e[0m"
+GREEN="\e[1;32m"
+RED="\e[1;31m"
+BLUE="\e[1;34m"
+YELLOW="\e[1;33m"
+PURPLE="\e[1;35m"
+TURQUOISE="\e[1;36m"
+GRAY="\e[1;37m"
+BLACK="\e[1;30m"
+
+BG_BLACK="\e[1;40m"
+BG_GREEN="\e[1;42m"
+BG_YELLOW="\e[1;43m"
+BG_BLUE="\e[1;44m"
+BG_PURPLE="\e[1;45m"
+BG_GRAY="\e[1;47m"
 
 # -------------------------
 # IP dinámica
@@ -156,6 +164,84 @@ origins_ofa() {
     done
 }
 
+
+extract () {
+    for archive in "$@"; do
+        [ -f "$archive" ] || { echo "Archivo inválido: $archive"; continue; }
+        case "$archive" in
+            *.tar.bz2) tar xvjf "$archive" ;;
+            *.tar.gz)  tar xvzf "$archive" ;;
+            *.bz2)     bunzip2 "$archive" ;;
+            *.rar)     rar x "$archive" ;;
+            *.gz)      gunzip "$archive" ;;
+            *.tar)     tar xvf "$archive" ;;
+            *.tbz2)    tar xvjf "$archive" ;;
+            *.tgz)     tar xvzf "$archive" ;;
+            *.zip)     unzip "$archive" ;;
+            *.Z)       uncompress "$archive" ;;
+            *.7z)      7z x "$archive" ;;
+            *) echo "No sé cómo extraer '$archive'" ;;
+        esac
+    done
+}
+
+
+whoxy () {
+    [ $# -eq 1 ] || { echo "Uso: whoxy dominio.com"; return 1; }
+    curl -s "https://api.whoxy.com/?key=$WHOXY_API_KEY&whois=$1" | jq
+}
+
+whoxyreverse () {
+    [ $# -ge 2 ] || { echo "Uso: whoxyreverse <name|email|company|keyword> valor"; return 1; }
+    local type="$1"; shift
+    local value="${*// /+}"
+    curl -s "https://api.whoxy.com/?key=$WHOXY_API_KEY&reverse=whois&$type=$value" | jq
+}
+
+whoxyhistory () {
+    [ $# -eq 1 ] || { echo "Uso: whoxyhistory dominio.com"; return 1; }
+    curl -s "https://api.whoxy.com/?key=$WHOXY_API_KEY&history=$1" | jq
+}
+
+jqurls()    { jq -r '.[].url' "$1"; }
+jqsubs()    { jq -r '.[].subdomain' "$1" | sort -u; }
+jqips()     { jq -r '.[].ip' "$1" | tr ',' '\n' | sort -u; }
+jqcnames()  { jq -r '.[].cname' "$1" | tr ',' '\n' | sort -u; }
+jqasn()     { jq -r '.[].asn' "$1" | tr ',' '\n' | sort -u; }
+jqcidr()    { jq -r '.[].cidr' "$1" | tr ',' '\n' | sort -u; }
+jqorg()     { jq -r '.[].org' "$1" | tr ',' '\n' | sort -u; }
+jqbanner()  { jq -r '.[] | select(.banner!="") | "\(.url) => \(.banner)"' "$1"; }
+
+
+takeover () {
+    [ $# -eq 2 ] || { echo "Uso: takeover subs.txt salida.txt"; return 1; }
+
+    local subs="$1"
+    local out="$2"
+    > "$out"
+
+    while read -r sub; do
+        cname=$(dig +short "$sub" CNAME)
+        if [[ -n "$cname" ]]; then
+            if ! whois "$cname" 2>/dev/null | grep -qi "Domain Status"; then
+                echo "[!] Posible takeover: $sub → $cname" | tee -a "$out"
+            fi
+        fi
+    done < "$subs"
+}
+
+
+keywordhunt () {
+    [ $# -eq 1 ] || { echo "Uso: keywordhunt urls.txt"; return 1; }
+
+    grep -Evi '\.(jpg|png|css|js|svg|woff|ttf|mp4)$' "$1" | \
+    grep -Ei 'api|auth|login|token|debug|admin|password|secret|key|redirect' | \
+    sort -u | tee found_keywords.txt
+}
+
+
+
+
 # =========================
 # origins_lepus
 # subdomain|ip,ip,ip → CDN vs ORIGIN detector
@@ -241,8 +327,17 @@ origins_lepus() {
 }
 
 
-# PATHs
-export PATH=$PATH:$HOME/go/bin:$HOME/.local/bin
+
+
+# Go / Cargo
+export PATH="/usr/local/go/bin:$PATH"
+export PATH="$HOME/go/bin:$PATH"
+
+[ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
+
+# WHOXY
+export WHOXY_API_KEY="$(cat /home/kermit/whoxy_api 2>/dev/null)"
+
 
 set -o noclobber
 shopt -s checkwinsize
