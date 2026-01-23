@@ -92,13 +92,12 @@ echo "Wordlists: ~/tools/SecLists"
 echo "=================================="
 
 
-curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh
-snap install atuin
+
 git clone https://github.com/jimeh/tmux-themepack.git /root/.tmux-themepack.git
 wget https://raw.githubusercontent.com/KermitPurple96/i3-kitty/refs/heads/main/tmux.conf -O /root/.tmux.conf
 wget https://raw.githubusercontent.com/KermitPurple96/BB_tools/refs/heads/main/bashrc -O /root/.bashrc
 wget https://raw.githubusercontent.com/KermitPurple96/i3-kitty/refs/heads/main/basic.tmuxtheme -O /root/.tmux-themepack/basic.tmuxtheme
-source /root/.bashrc
+
 
 #neovim
 wget https://github.com/neovim/neovim/releases/download/v0.11.2/nvim-linux-x86_64.appimage
@@ -106,6 +105,9 @@ chmod u+x nvim-linux-x86_64.appimage && ./nvim-linux-x86_64.appimage
 mv ./nvim-linux-x86_64.appimage /usr/bin/nvim
 chmod +x /usr/bin/nvim
 
-#nvchad
-git clone https://github.com/NvChad/starter ~/.config/nvim && nvim
-nvim #<leader>th -> gatekeeper
+curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh
+snap install atuin
+atuin init bash >> ~/.bashrc
+atuin import auto
+
+source ~/.bashrc
