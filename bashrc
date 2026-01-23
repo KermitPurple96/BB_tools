@@ -1,25 +1,101 @@
-
-export TERM=xterm
-
 # =========================
-# Colors (Bash)
+# Terminal / Colors (Bash)
 # =========================
-ENDCOLOR="\e[0m"
+export TERM=xterm  # como tenías antes
+
+# Colores y negrita
+RESET="\e[0m"
 GREEN="\e[1;32m"
 RED="\e[1;31m"
 BLUE="\e[1;34m"
 YELLOW="\e[1;33m"
 PURPLE="\e[1;35m"
-TURQUOISE="\e[1;36m"
-GRAY="\e[1;37m"
-BLACK="\e[1;30m"
+CYAN="\e[1;36m"
 
-BG_BLACK="\e[1;40m"
-BG_GREEN="\e[1;42m"
-BG_YELLOW="\e[1;43m"
-BG_BLUE="\e[1;44m"
-BG_PURPLE="\e[1;45m"
-BG_GRAY="\e[1;47m"
+# -------------------------
+# Prompt dinámico
+# -------------------------
+set_prompt() {
+    IP=$(get_ip)
+    [ -z "$IP" ] && IP="noip"
+
+    # símbolo root
+    if [ "$EUID" -eq 0 ]; then
+        SYMBOL="${RED}#"
+    else
+        SYMBOL="${PURPLE}\$"
+    fi
+
+    # venv
+    if [ -n "$VIRTUAL_ENV" ]; then
+        VENV_NAME=$(basename "$VIRTUAL_ENV")
+        VENV_PART=" ${CYAN}(${VENV_NAME})${RESET}"
+    else
+        VENV_PART=""
+    fi
+
+    # git
+    BRANCH=$(git_branch)
+    if [ -n "$BRANCH" ]; then
+        GIT_PART=" ${GREEN}(${BRANCH})${RESET}"
+    else
+        GIT_PART=""
+    fi
+
+    # Prompt completo, TODO en negrita y color, texto normal después
+    PS1="${PURPLE}\u${RESET}${GREEN}@${RESET}${YELLOW}${IP}${RESET} ${BLUE}\w${RESET}${VENV_PART}${GIT_PART}${SYMBOL}${RESET} "
+}
+
+PROMPT_COMMAND="history -a; history -c; history -r; set_prompt"
+
+
+tmuxn () {
+    if [ -z "$1" ]; then
+        echo "Uso: tmuxn <nombre_sesion>"
+        return 1
+    fi
+
+    local session="$1"
+
+    # Si la sesión ya existe, conectarse
+    if tmux has-session -t "$session" 2>/dev/null; then
+        tmux attach -t "$session"
+        return 0
+    fi
+
+    # Crear nueva sesión, cargar config y theme
+    tmux new-session -d -s "$session" \; \
+        source-file ~/.tmux.conf \; \
+        source-file ~/.tmux-themepack/powerline/default/green.tmuxtheme
+
+    tmux attach -t "$session"
+}
+
+
+tmuxk () {
+    if [ -z "$1" ]; then
+        echo "Sesiones activas:"
+        tmux list-sessions
+        echo
+        echo "Uso: tmuxk <nombre_sesion>"
+        return 1
+    fi
+
+    tmux kill-session -t "$1" && echo "Sesión '$1' eliminada"
+}
+
+
+tmuxkall () {
+    local current
+    current=$(tmux display-message -p '#S')
+
+    tmux list-sessions -F '#S' | grep -v "^$current$" | while read -r s; do
+        tmux kill-session -t "$s"
+        echo "Matada: $s"
+    done
+}
+
+
 
 # -------------------------
 # IP dinámica
@@ -342,3 +418,8 @@ export WHOXY_API_KEY="$(cat /home/kermit/whoxy_api 2>/dev/null)"
 set -o noclobber
 shopt -s checkwinsize
 export LESS='-R'
+
+. "$HOME/.atuin/bin/env"
+
+[[ -f ~/.bash-preexec.sh ]] && source ~/.bash-preexec.sh
+eval "$(atuin init bash)"
