@@ -105,9 +105,6 @@ chmod u+x nvim-linux-x86_64.appimage && ./nvim-linux-x86_64.appimage
 mv ./nvim-linux-x86_64.appimage /usr/bin/nvim
 chmod +x /usr/bin/nvim
 
-curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh
-snap install atuin
-atuin init bash >> ~/.bashrc
-atuin import auto
+
 
 source ~/.bashrc
