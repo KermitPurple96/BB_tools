@@ -202,40 +202,32 @@ alive_ofa() {
 # =========================
 # origins
 # Dominio único → resolve IPs → CDN vs ORIGIN
-# Uso: origins dominio.com
+# Uso: origins dominio.com | ip | archivo de ips
 # =========================
 origins() {
-    [ $# -eq 1 ] || { echo "Uso: origins dominio.com"; return 1; }
-
-    local DOMAIN="$1"
+    [ $# -le 1 ] || { echo "Uso: origins dominio.com | IP | archivo.txt"; return 1; }
 
     local RED="\033[31m"
     local GREEN="\033[32m"
     local YELLOW="\033[33m"
     local BLUE="\033[34m"
+    local CYAN="\033[36m"
     local RESET="\033[0m"
 
-    # resolver IPs del dominio
-    local IPS
-    IPS=$(dig +short "$DOMAIN" A | grep -E '^[0-9]')
+    local INPUT="$1"
 
-    if [ -z "$IPS" ]; then
-        echo -e "${RED}[✗] No se pudo resolver: $DOMAIN${RESET}"
-        return 1
-    fi
+    procesar_ip() {
+        local DOMAIN="$1"
+        local ip="$2"
 
-    echo -e "${BLUE}Subdomain\t\t\tIP\t\tProvider\t\t\tType${RESET}"
-    echo "---------------------------------------------------------------------------------------"
-
-    while read -r ip; do
+        [ -z "$ip" ] && return
 
         local ASN_INFO PROVIDER LOWER TYPE COLOR
-
         ASN_INFO=$(whois -h whois.cymru.com " -v $ip" 2>/dev/null | tail -n 1)
         PROVIDER=$(echo "$ASN_INFO" | awk '{$1=$2=$3=$4=""; print $0}' | xargs)
         LOWER=$(echo "$PROVIDER" | tr '[:upper:]' '[:lower:]')
 
-        if echo "$LOWER" | grep -Eiq 'fastly|cloudflare|akamai|edgecast|cloudfront|amazon|aws|google|gcp|shopify|salesforce|azure|cdn'; then
+        if echo "$LOWER" | grep -Eiq 'fastly|cloudflare|akamai|edgecast|cloudfront|amazon|aws|google|gcp|shopify|salesforce|azure|cdn|incapsula|sucuri|stackpath|limelight|verizon|imperva'; then
             TYPE="CDN"
             COLOR="$RED"
         else
@@ -245,9 +237,53 @@ origins() {
 
         printf "${YELLOW}%-35s${RESET} %-15s ${COLOR}%-30s %-8s${RESET}\n" \
             "$DOMAIN" "$ip" "$PROVIDER" "$TYPE"
+    }
 
-    done <<< "$IPS"
+    procesar_linea() {
+        local line="$1"
+        line=$(echo "$line" | xargs)
+        [ -z "$line" ] && return
+
+        # ¿Es IP?
+        if echo "$line" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+            procesar_ip "(IP directa)" "$line"
+        else
+            local ips
+            ips=$(dig +short "$line" A | grep -E '^[0-9]')
+            [ -z "$ips" ] && return
+
+            while read -r ip; do
+                procesar_ip "$line" "$ip"
+            done <<< "$ips"
+        fi
+    }
+
+    echo ""
+    echo -e "${BLUE}Subdomain\t\t\tIP\t\tProvider\t\t\tType${RESET}"
+    echo "---------------------------------------------------------------------------------------"
+
+    # 🔹 Caso 1: Pipe (stdin)
+    if [ -p /dev/stdin ]; then
+        while read -r line; do
+            procesar_linea "$line"
+        done
+        return
+    fi
+
+    # 🔹 Caso 2: Archivo
+    if [ -f "$INPUT" ]; then
+        echo -e "${CYAN}[i] Archivo detectado: $INPUT${RESET}"
+        while read -r line; do
+            procesar_linea "$line"
+        done < "$INPUT"
+        return
+    fi
+
+    # 🔹 Caso 3: Input único
+    procesar_linea "$INPUT"
 }
+
+
 
 # -------------------------
 # RECON / OSINT
